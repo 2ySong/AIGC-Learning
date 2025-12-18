@@ -69,13 +69,13 @@ class MultiHeadAttention(nn.Module):
         )  # (b,n,d)
 
         q = rearrange(
-            q, pattern="'b n (nh nd)'->'b nh n nd'", nh=self.num_heads, nd=self.head_dim
+            q, pattern="b n (nh nd)->b nh n nd", nh=self.num_heads, nd=self.head_dim
         )
         k = rearrange(
-            k, pattern="'b n (nh nd)'->'b nh n nd'", nh=self.num_heads, nd=self.head_dim
+            k, pattern="b n (nh nd)->b nh n nd", nh=self.num_heads, nd=self.head_dim
         )
         v = rearrange(
-            v, pattern="'b n (nh nd)'->'b nh n nd'", nh=self.num_heads, nd=self.head_dim
+            v, pattern="b n (nh nd)->b nh n nd", nh=self.num_heads, nd=self.head_dim
         )
         #  计算注意力分数
 
@@ -85,14 +85,14 @@ class MultiHeadAttention(nn.Module):
             assert mask.shape == x.shape
             attn_scores += mask
 
-        attn_scores = F.softmax(attn_scores, dim=-1)
+        attn_scores = attn_scores.softmax(dim=-1)
         attn_scores = self.dropout(attn_scores)
 
         #
         y = attn_scores @ v  # (b,nh,n,nd)
 
         y = rearrange(
-            y, pattern="'b nh n nd'->'b n (nh nd)'", nh=self.num_heads, nd=self.head_dim
+            y, pattern="b nh n nd->b n (nh nd)", nh=self.num_heads, nd=self.head_dim
         )
 
         y = self.out_proj(y)
@@ -101,3 +101,12 @@ class MultiHeadAttention(nn.Module):
             return y, attn_scores
         else:
             return y
+
+
+if __name__ == "__main__":
+    x = torch.randn((128, 3, 256))
+    mha = MultiHeadAttention(256, 8, 0.1, out_attention=False)
+
+    y = mha(x)
+
+    print(y.shape)
