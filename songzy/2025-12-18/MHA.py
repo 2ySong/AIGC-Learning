@@ -1,83 +1,69 @@
-from turtle import forward
-from xml.sax.handler import version
 import torch
 import torch.nn as nn
 import torch.functional as F
 from einops import rearrange
-
-
-class SelfAttention(nn.Module):
-    def __init__(self, hidden_dim, dropout, out_attention, bias=False):
-        super().__init__()
-        self.hidden_dim = hidden_dim
-        self.out_attention = out_attention
-
-        self.q_matrix = nn.Linear(self.hidden_dim, self.hidden_dim, bias=bias)
-        self.k_matrix = nn.Linear(self.hidden_dim, self.hidden_dim, bias=bias)
-        self.v_matrix = nn.Linear(self.hidden_dim, self.hidden_dim, bias=bias)
-
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        B, C, D = x.shape
-
-        q, k, v = (
-            self.q_matrix(x),
-            self.q_matrix(x),
-            self.q_matrix(x),
-        )  # (b,n,d)
-
-        #  计算注意力分数
-
-        attn_scores = q @ k.transpose(-1, -2) * (self.hidden_dim ** (-0.5))  # (b,n,n)
-        attn_scores = F.softmax(attn_scores, dim=-1)
-        attn_scores = self.dropout(attn_scores)
-
-        #
-        y = attn_scores @ v  # (b,n,d)
-
-        if self.out_attention:
-            return y, attn_scores
-        else:
-            return y
+from typing import Optional, Type
 
 
 class MultiHeadAttention(nn.Module):
 
-    def __init__(self, hidden_dim, num_heads, dropout, out_attention, bias=False):
+    def __init__(
+        self,
+        hidden_dim: int,
+        num_heads: int = 8,
+        attn_drop: float = 0,
+        proj_drop: float = 0,
+        out_attention: bool = False,
+        qkv_bias: bool = False,
+        qk_norm: bool = False,
+        scale_norm: bool = False,
+        norm_layer: Optional[Type[nn.Module]] = None,
+        device=None,
+        dtype=None,
+    ) -> None:
         super().__init__()
         self.hidden_dim = hidden_dim
         self.num_heads = num_heads
         self.head_dim = self.hidden_dim // num_heads
         assert self.head_dim * num_heads == self.hidden_dim
+
         self.out_attention = out_attention
+        dd = {"device": device, "dtype": dtype}
+        self.qk_norm = qk_norm
+        if self.qk_norm or scale_norm:
+            assert (
+                norm_layer is not None
+            ), "norm_layer must be provided if qk_norm or scale_norm is True"
 
-        self.q_matrix = nn.Linear(self.hidden_dim, self.hidden_dim, bias=bias)
-        self.k_matrix = nn.Linear(self.hidden_dim, self.hidden_dim, bias=bias)
-        self.v_matrix = nn.Linear(self.hidden_dim, self.hidden_dim, bias=bias)
+        self.q_matrix = nn.Linear(self.hidden_dim, self.hidden_dim, bias=qkv_bias)
+        self.k_matrix = nn.Linear(self.hidden_dim, self.hidden_dim, bias=qkv_bias)
+        self.v_matrix = nn.Linear(self.hidden_dim, self.hidden_dim, bias=qkv_bias)
+        self.q_norm = norm_layer(self.head_dim, **dd) if self.qk_norm else nn.Identity()
+        self.k_norm = norm_layer(self.head_dim, **dd) if self.qk_norm else nn.Identity()
+        self.norm = norm_layer(self.hidden_dim, **dd) if scale_norm else nn.Identity()
+        self.attn_dropout = nn.Dropout(attn_drop)
+        self.out_proj = nn.Linear(self.hidden_dim, self.hidden_dim, bias=qkv_bias)
+        self.proj_drop = nn.Dropout(proj_drop)
 
-        self.dropout = nn.Dropout(dropout)
-        self.out_proj = nn.Linear(self.hidden_dim, self.hidden_dim)
-
-    def forward(self, x, mask=None):
+    def forward(
+        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         B, C, D = x.shape
+        qkv = []
+        for matrix in [self.q_matrix, self.k_matrix, self.v_matrix]:
+            temp = matrix(x)
+            temp = rearrange(
+                temp,
+                pattern="b n (nh nd)->b nh n nd",
+                nh=self.num_heads,
+                nd=self.head_dim,
+            )
+            qkv.append(temp)
+        q, k, v = qkv
 
-        q, k, v = (
-            self.q_matrix(x),
-            self.q_matrix(x),
-            self.q_matrix(x),
-        )  # (b,n,d)
-
-        q = rearrange(
-            q, pattern="b n (nh nd)->b nh n nd", nh=self.num_heads, nd=self.head_dim
-        )
-        k = rearrange(
-            k, pattern="b n (nh nd)->b nh n nd", nh=self.num_heads, nd=self.head_dim
-        )
-        v = rearrange(
-            v, pattern="b n (nh nd)->b nh n nd", nh=self.num_heads, nd=self.head_dim
-        )
-        #  计算注意力分数
+        if self.qk_norm:
+            q = self.q_norm(q)
+            k = self.k_norm(k)
 
         attn_scores = q @ k.transpose(-1, -2) * (self.head_dim ** (-0.5))  # (b,nh,n,n)
 
@@ -86,7 +72,7 @@ class MultiHeadAttention(nn.Module):
             attn_scores += mask
 
         attn_scores = attn_scores.softmax(dim=-1)
-        attn_scores = self.dropout(attn_scores)
+        attn_scores = self.attn_dropout(attn_scores)
 
         #
         y = attn_scores @ v  # (b,nh,n,nd)
@@ -94,8 +80,9 @@ class MultiHeadAttention(nn.Module):
         y = rearrange(
             y, pattern="b nh n nd->b n (nh nd)", nh=self.num_heads, nd=self.head_dim
         )
-
+        y = self.norm(y)
         y = self.out_proj(y)
+        y = self.proj_drop(y)
 
         if self.out_attention:
             return y, attn_scores
