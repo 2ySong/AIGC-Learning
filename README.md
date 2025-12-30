@@ -2,11 +2,14 @@ AIGC Learning Group
 
 Southeast University
 
-- Members:
-  - Zhangyao Song:
-  - Jiaqi Li
-  - Yunfei Gu
-  - Chaofeng Qu
-  - Ruodi Zhang
-- 本周任务：
-  - 手撕MHA，在周四前上传
+## Members:
+  
+  - [Zhangyao Song](./songzy/README.md)
+  
+  - [Jiaqi Li](./lijq/README.md)
+  
+  - [Yunfei Gu](./guyf/README.md)
+  
+  - [Chaofeng Qu](./qucf/README.md)
+  
+  - [Ruodi Zhang](./zhangrd/README.md)
