@@ -1,3 +1,14 @@
+## About ME: 
+  
+  - Name: Jiaqi Li (李佳奇)
+  
+  - Email: lijq@seu.edu.cn
+  - Institution: 
+  - Grade: 
+  - Research Direction: 
+
+## Learning
+
 各种AIGC相关学习内容，Coding/Theory/Experiments/Papers等
 
 
