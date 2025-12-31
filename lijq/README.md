@@ -3,9 +3,9 @@
   - Name: Jiaqi Li (李佳奇)
   
   - Email: lijq@seu.edu.cn
-  - Institution: 
-  - Grade: 
-  - Research Direction: 
+  - Institution: School of Information Science and Engineering, Southeast University, Nanjing
+  - Grade: 2023 Master's Student, 2025 PHD Student
+  - Research Direction: AOI
 
 ## Learning
 
