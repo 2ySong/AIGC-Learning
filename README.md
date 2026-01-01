@@ -1,4 +1,4 @@
-# AIGC Learning Group
+# Artificial Intelligence Generated Content (AIGC) Learning Group
 
 - Institution: Southeast University, Nanjing, China
 
