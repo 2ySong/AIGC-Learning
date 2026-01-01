@@ -14,4 +14,5 @@ A collection of learning materials for AI-generated content (AIGC) including the
 
 ### 第一周，2025-12-18
 
-- [MultiHeadAttention](songzy/coding/2025-12-18/MHA.py)
+- [MultiHeadAttention](./coding/2025-12-18/MHA.py)
+
