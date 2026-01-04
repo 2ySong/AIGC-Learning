@@ -4,7 +4,7 @@
   
   - Email: lijq@seu.edu.cn
   - Institution: School of Information Science and Engineering, Southeast University, Nanjing
-  - Grade: 2023 Master's Student, 2025 PHD Student
+  - Grade: 2023 Master's Student, 2025'Spring PhD Student
   - Research Direction: AOI
 
 ## Learning

@@ -5,7 +5,7 @@
 - Name: Zhangyao Song (宋章耀)
 - Email: zysong@seu.edu.cn
 - Institution: School of Cyber Science and Engineering, Southeast University, Nanjing
-- Grade: 2023 Master's Student
+- Grade: 2023 Master's Student, 2026'Fall PhD Student
 - Research Direction: Generative Models, Time Series Forecasting
 
 A collection of learning materials for AI-generated content (AIGC) including theory, code implementations, and practical examples.
