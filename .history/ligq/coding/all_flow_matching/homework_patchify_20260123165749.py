@@ -4,10 +4,10 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 import numpy as np
 
-transform=transforms.Compose([
+transform=transforms.Compose(
     transforms.Resize((32,32)),
     transforms.ToTensor()
-])
+)
 dataset=torchvision.datasets.CIFAR10(root='./data',train=False,transform=transform,download=True)
 dataloader=torch.utils.data.DataLoader(dataset=dataset,batch_size=1,shuffle=True)
 images,labels=next(iter(dataloader))
@@ -26,5 +26,5 @@ class PatchEmbedding(nn.Module):
         return x
     
 model=PatchEmbedding()
-output=model(images)
-#print(output.shape)
+output=model(x)
+print(output.shape())

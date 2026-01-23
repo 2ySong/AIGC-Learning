@@ -26,5 +26,5 @@ class PatchEmbedding(nn.Module):
         return x
     
 model=PatchEmbedding()
-output=model(images)
-#print(output.shape)
+output=model(x)
+print(output.shape())
