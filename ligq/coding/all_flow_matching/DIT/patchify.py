@@ -4,6 +4,7 @@ import torchvision
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import numpy as np
+import math
 
 # ==========================================
 # 1. 准备数据 (CIFAR-10)
@@ -83,18 +84,50 @@ model = PatchEmbed(img_size=32, patch_size=8, in_chans=3, embed_dim=128)
 # 将真实的 CIFAR 图片送入模型
 output_sequence = model(images)
 
-print("-" * 30)
-print("真实数据测试结果:")
-print(f"输入图片形状: {images.shape} (一张 32x32 的 RGB 图)")
-print("-" * 30)
-print(f"Patch Size 设置为: {model.patch_size} x {model.patch_size}")
-print(f"计算出的 Patch 数量: {model.n_patches} (即序列长度)")
-print(f"每个 Patch 被映射到的维度 (Embed Dim): {128}")
-print("-" * 30)
-print(f"模型输出形状: {output_sequence.shape}")
-print("解读: [Batch Size=1, 序列长度=16, 每个token的维度=128]")
-print("-" * 30)
+class TimestepEmbedder(nn.Module):
+    def __init__(self, hidden_size, frequency_embedding_size=256):
+        super().__init__()
+        # MLP: 用于对正弦波特征进行进一步的学习和变换
+        self.mlp = nn.Sequential(
+            nn.Linear(frequency_embedding_size, hidden_size),
+            nn.SiLU(), # 激活函数，DiT/GPT 常用 SiLU 而不是 ReLU
+            nn.Linear(hidden_size, hidden_size),
+        )
+        self.frequency_embedding_size = frequency_embedding_size
 
-# 验证一下输出里的数据是不是真的不一样的 (防止模型没初始化好全输出0)
-print("打印第一个 Patch 对应的向量的前5个数值 (验证有数据流动):")
-print(output_sequence[0, 0, :5].detach().numpy())
+    @staticmethod
+    def timestep_embedding(t, dim, max_period=10000):
+        """
+        这里是纯数学计算，没有可学习参数。
+        把 t (形状 [Batch]) 变成 正弦波向量 (形状 [Batch, dim])
+        """
+        # 1. 计算频率一半的维度 (因为要有 sin 和 cos 两个)
+        half = dim // 2
+        
+        # 2. 生成频率系数 (freqs)
+        # 这一行看着吓人，其实就是生成一串从 1 到 1/10000 的数字
+        freqs = torch.exp(
+            -math.log(max_period) * torch.arange(start=0, end=half, dtype=torch.float32) / half
+        ).to(device=t.device)
+        
+        # 3. 把 t 和 频率相乘
+        # args 形状: [Batch, half_dim]
+        args = t[:, None].float() * freqs[None]
+        
+        # 4. 拼接 sin 和 cos
+        # embedding 形状: [Batch, dim]
+        embedding = torch.cat([torch.cos(args), torch.sin(args)], dim=-1)
+        
+        # 如果维度是奇数(很少见)，补一个零
+        if dim % 2:
+            embedding = torch.cat([embedding, torch.zeros_like(embedding[:, :1])], dim=-1)
+            
+        return embedding
+
+    def forward(self, t):
+        # 1. 先进行数学编码 (无参数)
+        t_freq = self.timestep_embedding(t, self.frequency_embedding_size)
+        
+        # 2. 再过 MLP (有参数)
+        t_emb = self.mlp(t_freq)
+        return t_emb
