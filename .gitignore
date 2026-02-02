@@ -12,3 +12,4 @@ develop-eggs/
 .vscode/
 dist/
 .idea/
+.history/
